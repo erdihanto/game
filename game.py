@@ -151,13 +151,15 @@ def cek_jawaban(jawaban_user):
     else:
         st.session_state.skor_salah += 1
         st.session_state.trigger_flash = True
-        st.session_state.flash_count += 1  # Menambah counter agar key komponen selalu unik
+        st.session_state.flash_count += 1
         
     generate_soal(st.session_state.kategori)
 
-# --- INJEKSI FLASH MERAH & SUARA BUZZER (PAKAI KEY DINAMIS) ---
+# --- INJEKSI FLASH MERAH & SUARA BUZZER ---
 if st.session_state.trigger_flash:
+    # Memasukkan tag komentar unik agar string HTML selalu dianggap baru oleh Streamlit
     components.html(f"""
+        <!-- flash_id_{st.session_state.flash_count} -->
         <script>
         (function() {{
             // 1. Pemutaran Suara Buzzer Error
@@ -190,7 +192,6 @@ if st.session_state.trigger_flash:
             try {{
                 const parentDoc = window.parent.document;
                 
-                // Hapus flash lama jika masih tersisa
                 const existingFlash = parentDoc.getElementById('active-red-flash');
                 if (existingFlash) {{
                     existingFlash.remove();
@@ -221,7 +222,7 @@ if st.session_state.trigger_flash:
             }} catch(e) {{ console.log(e); }}
         }})();
         </script>
-    """, height=0, width=0, key=f"flash_effect_{st.session_state.flash_count}")
+    """, height=0, width=0)
     
     st.session_state.trigger_flash = False
 
