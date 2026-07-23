@@ -1,7 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import random
-import time
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(
@@ -67,10 +66,10 @@ st.markdown("""
     .score-correct { background-color: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
     .score-wrong { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
 
-    /* TOMBOL PILIHAN GANDA PANJANG & UNIFORM */
+    /* TOMBOL PILIHAN GANDA PANJANG & SERAGAM */
     .option-btn > .stButton > button {
         width: 100% !important;
-        height: 58px !important;
+        height: 60px !important;
         border-radius: 14px !important;
         font-size: 1.4rem !important;
         font-weight: 700 !important;
@@ -78,7 +77,7 @@ st.markdown("""
         color: #1E293B !important;
         border: 2px solid #E2E8F0 !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03) !important;
-        margin-bottom: 6px !important;
+        margin-bottom: 8px !important;
         transition: all 0.15s ease-in-out !important;
     }
 
@@ -152,50 +151,62 @@ def cek_jawaban(jawaban_user):
     else:
         st.session_state.skor_salah += 1
         st.session_state.trigger_flash = True
-        st.session_state.flash_count += 1
+        st.session_state.flash_count += 1  # Menambah counter agar key komponen selalu unik
         
     generate_soal(st.session_state.kategori)
 
-# --- INJEKSI FLASH MERAH & SUARA NOTIFIKASI (KONSISTEN SETIAP SALAH) ---
+# --- INJEKSI FLASH MERAH & SUARA BUZZER (PAKAI KEY DINAMIS) ---
 if st.session_state.trigger_flash:
-    # Menggunakan iframe component agar JavaScript selalu dieksekusi ulang tanpa caching
     components.html(f"""
         <script>
         (function() {{
-            // 1. Bunyikan Suara Error (Buzzer)
+            // 1. Pemutaran Suara Buzzer Error
             try {{
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(200, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.3);
-                
-                gain.gain.setValueAtTime(0.4, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-                
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                
-                osc.start();
-                osc.stop(ctx.currentTime + 0.3);
-            }} catch(e) {{}}
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {{
+                    const ctx = new AudioCtx();
+                    if (ctx.state === 'suspended') {{
+                        ctx.resume();
+                    }}
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.35);
+                    
+                    gain.gain.setValueAtTime(0.5, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.35);
+                }}
+            }} catch(e) {{ console.log(e); }}
 
-            // 2. Tampilkan Flash Merah pada Layar Utama
+            // 2. Efek Flash Merah Layar Penuh
             try {{
                 const parentDoc = window.parent.document;
+                
+                // Hapus flash lama jika masih tersisa
+                const existingFlash = parentDoc.getElementById('active-red-flash');
+                if (existingFlash) {{
+                    existingFlash.remove();
+                }}
+
                 const flashDiv = parentDoc.createElement('div');
+                flashDiv.id = 'active-red-flash';
                 flashDiv.style.position = 'fixed';
                 flashDiv.style.top = '0';
                 flashDiv.style.left = '0';
                 flashDiv.style.width = '100vw';
                 flashDiv.style.height = '100vh';
-                flashDiv.style.backgroundColor = 'rgba(239, 68, 68, 0.65)';
+                flashDiv.style.backgroundColor = 'rgba(239, 68, 68, 0.7)';
                 flashDiv.style.zIndex = '999999';
                 flashDiv.style.pointerEvents = 'none';
-                flashDiv.style.transition = 'opacity 0.4s ease-out';
-                flashDiv.style.opacity = '1';
+                flashDiv.style.transition = 'opacity 0.3s ease-out';
                 
                 parentDoc.body.appendChild(flashDiv);
                 
@@ -205,12 +216,12 @@ if st.session_state.trigger_flash:
                         if (flashDiv.parentNode) {{
                             flashDiv.parentNode.removeChild(flashDiv);
                         }}
-                    }}, 400);
-                }}, 50);
-            }} catch(e) {{}}
+                    }}, 300);
+                }}, 100);
+            }} catch(e) {{ console.log(e); }}
         }})();
         </script>
-    """, height=0, width=0)
+    """, height=0, width=0, key=f"flash_effect_{st.session_state.flash_count}")
     
     st.session_state.trigger_flash = False
 
@@ -260,7 +271,7 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # Pilihan Ganda Membujur Panjang (1 Kolom, Ukuran Sama & Rapi)
+    # Pilihan Ganda Membujur Panjang (1 Kolom, Simetris & Rapi)
     st.markdown('<div class="option-btn">', unsafe_allow_html=True)
     for idx, opsi in enumerate(st.session_state.pilihan):
         if st.button(str(opsi), key=f"opt_{idx}_{st.session_state.flash_count}", use_container_width=True):
