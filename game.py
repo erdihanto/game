@@ -1,47 +1,7 @@
-import base64
-import math
 import random
-import struct
 import time
 import streamlit as st
 import streamlit.components.v1 as components
-
-
-# --- GENERATOR SUARA BUZZER (WAV BASE64) ---
-@st.cache_data
-def get_buzzer_audio_base64():
-    """Menghasilkan file audio WAV buatan sendiri (suara buzzer/tettt) dalam format Base64"""
-    sample_rate = 16000
-    duration = 0.25  # Durasi 0.25 detik
-    freq = 150  # Frekuensi nada rendah (efek salah/error)
-    num_samples = int(sample_rate * duration)
-
-    audio_bytes = bytearray()
-    for i in range(num_samples):
-        t = i / sample_rate
-        # Gelombang kotak (square wave) untuk karakter suara buzzer khas kuis
-        val = 1.0 if (math.sin(2 * math.pi * freq * t) > 0) else -1.0
-        # Redaman (fade out) lembut di ujung suara
-        fade = (num_samples - i) / num_samples
-        sample_val = int(128 + 45 * val * fade)
-        audio_bytes.append(max(0, min(255, sample_val)))
-
-    # Header File WAV PCM
-    header = bytearray()
-    header.extend(b"RIFF")
-    header.extend(struct.pack("<I", 36 + len(audio_bytes)))
-    header.extend(b"WAVEfmt ")
-    header.extend(
-        struct.pack("<IHHIIHH", 16, 1, 1, sample_rate, sample_rate, 1, 8)
-    )
-    header.extend(b"data")
-    header.extend(struct.pack("<I", len(audio_bytes)))
-
-    wav_data = header + audio_bytes
-    return base64.b64encode(wav_data).decode("utf-8")
-
-
-BUZZER_BASE64 = get_buzzer_audio_base64()
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(
@@ -50,7 +10,7 @@ st.set_page_config(
 
 # --- INITIALIZATION SESSION STATE ---
 if "screen" not in st.session_state:
-    st.session_state.screen = "menu"  # 'menu', 'quiz', 'result'
+    st.session_state.screen = "menu"  # Status: 'menu', 'quiz', 'result'
 if "kategori" not in st.session_state:
     st.session_state.kategori = None
 if "skor_benar" not in st.session_state:
@@ -227,26 +187,51 @@ def cek_jawaban(jawaban_user):
     generate_soal(st.session_state.kategori)
 
 
-# --- PEMUTAR SUARA BUZZER (HTML5 AUDIO) ---
+# --- INJEKSI SUARA BUZZER DI WINDOW.PARENT ---
 if st.session_state.trigger_flash:
     components.html(
         f"""
-        <audio autoplay style="display:none;">
-            <source src="data:audio/wav;base64,{BUZZER_BASE64}" type="audio/wav">
-        </audio>
+        <!-- trigger_audio_{st.session_state.flash_count} -->
         <script>
         (function() {{
             try {{
-                var audio = new Audio("data:audio/wav;base64,{BUZZER_BASE64}");
-                audio.play().catch(function(e){{ console.log(e); }});
-            }} catch(e) {{}}
+                // Mengakses window.parent agar memotong aturan pembatasan autoplay iframe
+                const targetWin = window.parent || window;
+                const AudioContext = targetWin.AudioContext || targetWin.webkitAudioContext;
+                
+                if (AudioContext) {{
+                    const ctx = new AudioContext();
+                    if (ctx.state === 'suspended') {{
+                        ctx.resume();
+                    }}
+                    
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    
+                    // Suara Buzzer/Tettt Khas Kuis (160Hz turun ke 50Hz)
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(160, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.35);
+                    
+                    gain.gain.setValueAtTime(0.5, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.35);
+                }}
+            }} catch(e) {{
+                console.log("Error audio:", e);
+            }}
         }})();
         </script>
-        """,
+    """,
         height=0,
         width=0,
     )
-    # Matikan trigger flash setelah suara dan animasi dipicu
+    # Matikan trigger agar suara tidak dimainkan ulang oleh interval timer
     st.session_state.trigger_flash = False
 
 
