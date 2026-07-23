@@ -275,8 +275,8 @@ elif st.session_state.screen == "quiz":
         unsafe_allow_html=True,
     )
 
-    # Hitung sisa waktu terlebih dahulu
-    sisa_waktu = 10 - int(time.time() - st.session_state.start_time)
+    # Hitung sisa waktu
+    sisa_waktu = max(0, 10 - int(time.time() - st.session_state.start_time))
 
     # Cek apakah waktu sudah habis
     if sisa_waktu <= 0:
@@ -299,15 +299,51 @@ elif st.session_state.screen == "quiz":
         unsafe_allow_html=True,
     )
 
+    # PILIHAN GANDA (DIBUAT GRID 2x2 / 2 BARIS)
     st.markdown('<div class="option-btn">', unsafe_allow_html=True)
-    for idx, opsi in enumerate(st.session_state.pilihan):
+    
+    col1, col2 = st.columns(2)
+    
+    # Baris 1: Opsi 0 dan 1
+    with col1:
         if st.button(
-            str(opsi),
-            key=f"opt_{idx}_{st.session_state.flash_count}",
+            str(st.session_state.pilihan[0]),
+            key=f"opt_0_{st.session_state.flash_count}",
             use_container_width=True,
         ):
-            cek_jawaban(opsi)
+            cek_jawaban(st.session_state.pilihan[0])
             st.rerun()
+            
+    with col2:
+        if st.button(
+            str(st.session_state.pilihan[1]),
+            key=f"opt_1_{st.session_state.flash_count}",
+            use_container_width=True,
+        ):
+            cek_jawaban(st.session_state.pilihan[1])
+            st.rerun()
+
+    # Baris 2: Opsi 2 dan 3
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        if st.button(
+            str(st.session_state.pilihan[2]),
+            key=f"opt_2_{st.session_state.flash_count}",
+            use_container_width=True,
+        ):
+            cek_jawaban(st.session_state.pilihan[2])
+            st.rerun()
+            
+    with col4:
+        if st.button(
+            str(st.session_state.pilihan[3]),
+            key=f"opt_3_{st.session_state.flash_count}",
+            use_container_width=True,
+        ):
+            cek_jawaban(st.session_state.pilihan[3])
+            st.rerun()
+
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -319,9 +355,18 @@ elif st.session_state.screen == "quiz":
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Refresh otomatis secara halus tiap 1 detik tanpa memblokir klik
-    time.sleep(1)
-    st.rerun()
+    # Trigger auto-rerun via JS agar UI tetap responsif terhadap klik tombol
+    components.html(
+        """
+        <script>
+        setTimeout(function() {
+            window.parent.postMessage({type: 'streamlit:render'}, '*');
+        }, 1000);
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
 
 # 3. SCREEN: HASIL AKHIR
 elif st.session_state.screen == "result":
