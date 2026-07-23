@@ -8,115 +8,6 @@ st.set_page_config(
     page_title="Kuis Penjumlahan Interaktif", page_icon="🧮", layout="centered"
 )
 
-# --- CSS MODERN & STYLING TOMBOL ---
-st.markdown(
-    """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
-
-    html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-
-    /* Membatasi lebar tampilan agar tetap rapi seperti aplikasi mobile */
-    .main .block-container {
-        max-width: 480px !important;
-        padding-top: 1.5rem !important;
-        padding-bottom: 2rem !important;
-    }
-
-    /* Sembunyikan header/footer bawaan Streamlit */
-    header { visibility: hidden; }
-    footer { visibility: hidden; }
-
-    /* Kartu Soal */
-    .quiz-card {
-        background: #FFFFFF;
-        border-radius: 20px;
-        padding: 24px;
-        text-align: center;
-        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
-        border: 1px solid #E2E8F0;
-        margin-bottom: 20px;
-    }
-
-    .question-text {
-        font-size: 3.2rem;
-        font-weight: 800;
-        color: #0F172A;
-        margin: 10px 0;
-        letter-spacing: -1px;
-    }
-
-    /* Papan Skor Top Bar */
-    .score-badge-container {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 16px;
-    }
-    .score-badge {
-        flex: 1;
-        padding: 10px;
-        border-radius: 12px;
-        text-align: center;
-        font-weight: 700;
-        font-size: 0.95rem;
-    }
-    .score-correct { background-color: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
-    .score-wrong { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
-
-    /* Timer Badge */
-    .timer-badge {
-        background-color: #FEF3C7;
-        color: #92400E;
-        border: 1px solid #FDE68A;
-        border-radius: 12px;
-        padding: 10px;
-        text-align: center;
-        font-weight: 800;
-        font-size: 1.1rem;
-        margin-bottom: 16px;
-    }
-
-    /* Tombol Pilihan Ganda */
-    .option-btn > .stButton > button {
-        width: 100% !important;
-        height: 60px !important;
-        border-radius: 14px !important;
-        font-size: 1.4rem !important;
-        font-weight: 700 !important;
-        background-color: #FFFFFF !important;
-        color: #1E293B !important;
-        border: 2px solid #E2E8F0 !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03) !important;
-        margin-bottom: 8px !important;
-        transition: all 0.15s ease-in-out !important;
-    }
-
-    .option-btn > .stButton > button:hover {
-        border-color: #3B82F6 !important;
-        color: #2563EB !important;
-        background-color: #EFF6FF !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 12px -2px rgba(59, 130, 246, 0.15) !important;
-    }
-
-    .option-btn > .stButton > button:active {
-        transform: translateY(1px) !important;
-    }
-
-    /* Style Tombol Sekunder */
-    .secondary-btn > .stButton > button {
-        height: 48px !important;
-        font-size: 0.95rem !important;
-        border-radius: 12px !important;
-    }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
-
 # --- INITIALIZATION SESSION STATE ---
 if "screen" not in st.session_state:
     st.session_state.screen = "menu"  # Status: 'menu', 'quiz', 'result'
@@ -138,6 +29,129 @@ if "flash_count" not in st.session_state:
     st.session_state.flash_count = 0
 if "start_time" not in st.session_state:
     st.session_state.start_time = time.time()
+
+# --- CSS MODERN & ANIMASI FLASH ---
+flash_css = ""
+if st.session_state.trigger_flash:
+    flash_css = """
+    @keyframes flashAnimation {
+        0% { background-color: rgba(239, 68, 68, 0.6); }
+        100% { background-color: transparent; }
+    }
+    .stApp {
+        animation: flashAnimation 0.4s ease-out forwards;
+    }
+    """
+
+st.markdown(
+    f"""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
+
+    html, body, [class*="css"] {{
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }}
+
+    {flash_css}
+
+    /* Membatasi lebar tampilan agar tetap rapi seperti aplikasi mobile */
+    .main .block-container {{
+        max-width: 480px !important;
+        padding-top: 1.5rem !important;
+        padding-bottom: 2rem !important;
+    }}
+
+    /* Sembunyikan header/footer bawaan Streamlit */
+    header {{ visibility: hidden; }}
+    footer {{ visibility: hidden; }}
+
+    /* Kartu Soal */
+    .quiz-card {{
+        background: #FFFFFF;
+        border-radius: 20px;
+        padding: 24px;
+        text-align: center;
+        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+        border: 1px solid #E2E8F0;
+        margin-bottom: 20px;
+    }}
+
+    .question-text {{
+        font-size: 3.2rem;
+        font-weight: 800;
+        color: #0F172A;
+        margin: 10px 0;
+        letter-spacing: -1px;
+    }}
+
+    /* Papan Skor Top Bar */
+    .score-badge-container {{
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+    }}
+    .score-badge {{
+        flex: 1;
+        padding: 10px;
+        border-radius: 12px;
+        text-align: center;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }}
+    .score-correct {{ background-color: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }}
+    .score-wrong {{ background-color: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }}
+
+    /* Timer Badge */
+    .timer-badge {{
+        background-color: #FEF3C7;
+        color: #92400E;
+        border: 1px solid #FDE68A;
+        border-radius: 12px;
+        padding: 10px;
+        text-align: center;
+        font-weight: 800;
+        font-size: 1.1rem;
+        margin-bottom: 16px;
+    }}
+
+    /* Tombol Pilihan Ganda */
+    .option-btn > .stButton > button {{
+        width: 100% !important;
+        height: 60px !important;
+        border-radius: 14px !important;
+        font-size: 1.4rem !important;
+        font-weight: 700 !important;
+        background-color: #FFFFFF !important;
+        color: #1E293B !important;
+        border: 2px solid #E2E8F0 !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03) !important;
+        margin-bottom: 8px !important;
+        transition: all 0.15s ease-in-out !important;
+    }}
+
+    .option-btn > .stButton > button:hover {{
+        border-color: #3B82F6 !important;
+        color: #2563EB !important;
+        background-color: #EFF6FF !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px -2px rgba(59, 130, 246, 0.15) !important;
+    }}
+
+    .option-btn > .stButton > button:active {{
+        transform: translateY(1px) !important;
+    }}
+
+    /* Style Tombol Sekunder */
+    .secondary-btn > .stButton > button {{
+        height: 48px !important;
+        font-size: 0.95rem !important;
+        border-radius: 12px !important;
+    }}
+    </style>
+""",
+    unsafe_allow_html=True,
+)
 
 
 # --- LOGIKA SOAL ---
@@ -181,14 +195,13 @@ def cek_jawaban(jawaban_user):
     generate_soal(st.session_state.kategori)
 
 
-# --- INJEKSI FLASH MERAH & SUARA BUZZER ---
+# --- INJEKSI SUARA BUZZER ---
 if st.session_state.trigger_flash:
     components.html(
         f"""
-        <!-- flash_id_{st.session_state.flash_count} -->
+        <!-- audio_id_{st.session_state.flash_count} -->
         <script>
         (function() {{
-            // 1. Suara Buzzer Error
             try {{
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 if (AudioCtx) {{
@@ -198,48 +211,18 @@ if st.session_state.trigger_flash:
                     const gain = ctx.createGain();
                     
                     osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(220, ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.35);
+                    osc.frequency.setValueAtTime(180, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.3);
                     
-                    gain.gain.setValueAtTime(0.5, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+                    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
                     
                     osc.connect(gain);
                     gain.connect(ctx.destination);
                     
                     osc.start();
-                    osc.stop(ctx.currentTime + 0.35);
+                    osc.stop(ctx.currentTime + 0.3);
                 }}
-            }} catch(e) {{ console.log(e); }}
-
-            // 2. Efek Flash Merah Layar Penuh
-            try {{
-                const parentDoc = window.parent.document;
-                const existingFlash = parentDoc.getElementById('active-red-flash');
-                if (existingFlash) {{ existingFlash.remove(); }}
-
-                const flashDiv = parentDoc.createElement('div');
-                flashDiv.id = 'active-red-flash';
-                flashDiv.style.position = 'fixed';
-                flashDiv.style.top = '0';
-                flashDiv.style.left = '0';
-                flashDiv.style.width = '100vw';
-                flashDiv.style.height = '100vh';
-                flashDiv.style.backgroundColor = 'rgba(239, 68, 68, 0.7)';
-                flashDiv.style.zIndex = '999999';
-                flashDiv.style.pointerEvents = 'none';
-                flashDiv.style.transition = 'opacity 0.25s ease-out';
-                
-                parentDoc.body.appendChild(flashDiv);
-                
-                setTimeout(() => {{
-                    flashDiv.style.opacity = '0';
-                    setTimeout(() => {{
-                        if (flashDiv.parentNode) {{
-                            flashDiv.parentNode.removeChild(flashDiv);
-                        }}
-                    }}, 250);
-                }}, 80);
             }} catch(e) {{ console.log(e); }}
         }})();
         </script>
@@ -247,8 +230,7 @@ if st.session_state.trigger_flash:
         height=0,
         width=0,
     )
-
-    # Langsung matikan trigger agar tidak di-loop oleh timer
+    # Matikan trigger flash agar animasi CSS hanya berjalan 1 kali
     st.session_state.trigger_flash = False
 
 
