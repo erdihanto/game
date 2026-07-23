@@ -55,7 +55,7 @@ st.markdown(
     {flash_css}
 
     .main .block-container {{
-        max-width: 480px !important;
+        max-width: 520px !important;
         padding-top: 1.5rem !important;
         padding-bottom: 2rem !important;
     }}
@@ -75,7 +75,7 @@ st.markdown(
     }}
 
     .question-text {{
-        font-size: 3.2rem;
+        font-size: 3.5rem;
         font-weight: 800;
         color: #0F172A;
         margin: 10px 0;
@@ -91,11 +91,11 @@ st.markdown(
     }}
     .score-badge {{
         flex: 1;
-        padding: 10px;
+        padding: 12px;
         border-radius: 12px;
         text-align: center;
         font-weight: 700;
-        font-size: 0.95rem;
+        font-size: 1.1rem;
     }}
     .score-correct {{ background-color: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }}
     .score-wrong {{ background-color: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }}
@@ -106,39 +106,30 @@ st.markdown(
         color: #92400E;
         border: 1px solid #FDE68A;
         border-radius: 12px;
-        padding: 10px;
+        padding: 12px;
         text-align: center;
         font-weight: 800;
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         margin-bottom: 16px;
     }}
 
     /* Tombol Pilihan Ganda */
     .option-btn > .stButton > button {{
         width: 100% !important;
-        height: 60px !important;
+        height: 65px !important;
         border-radius: 14px !important;
-        font-size: 1.4rem !important;
+        font-size: 1.6rem !important;
         font-weight: 700 !important;
         background-color: #FFFFFF !important;
         color: #1E293B !important;
         border: 2px solid #E2E8F0 !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03) !important;
-        margin-bottom: 8px !important;
-        transition: all 0.15s ease-in-out !important;
-    }}
-
-    .option-btn > .stButton > button:hover {{
-        border-color: #3B82F6 !important;
-        color: #2563EB !important;
-        background-color: #EFF6FF !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 12px -2px rgba(59, 130, 246, 0.15) !important;
+        margin-bottom: 10px !important;
     }}
 
     .secondary-btn > .stButton > button {{
-        height: 48px !important;
-        font-size: 0.95rem !important;
+        height: 50px !important;
+        font-size: 1.05rem !important;
         border-radius: 12px !important;
     }}
     </style>
@@ -187,33 +178,27 @@ def cek_jawaban(jawaban_user):
     generate_soal(st.session_state.kategori)
 
 
-# --- INJEKSI SUARA BUZZER DI WINDOW.PARENT ---
+# --- SUARA BUZZER AMAN UNTUK ANDROID TV ---
 if st.session_state.trigger_flash:
     components.html(
         f"""
         <!-- trigger_audio_{st.session_state.flash_count} -->
         <script>
-        (function() {{
+        setTimeout(function() {{
             try {{
-                // Mengakses window.parent agar memotong aturan pembatasan autoplay iframe
-                const targetWin = window.parent || window;
-                const AudioContext = targetWin.AudioContext || targetWin.webkitAudioContext;
-                
-                if (AudioContext) {{
-                    const ctx = new AudioContext();
-                    if (ctx.state === 'suspended') {{
-                        ctx.resume();
-                    }}
+                var targetWin = window.parent || window;
+                var AudioCtx = targetWin.AudioContext || targetWin.webkitAudioContext;
+                if (AudioCtx) {{
+                    var ctx = new AudioCtx();
+                    if (ctx.state === 'suspended') {{ ctx.resume(); }}
+                    var osc = ctx.createOscillator();
+                    var gain = ctx.createGain();
                     
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    
-                    // Suara Buzzer/Tettt Khas Kuis (160Hz turun ke 50Hz)
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(160, ctx.currentTime);
                     osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.35);
                     
-                    gain.gain.setValueAtTime(0.5, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.4, ctx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
                     
                     osc.connect(gain);
@@ -223,22 +208,21 @@ if st.session_state.trigger_flash:
                     osc.stop(ctx.currentTime + 0.35);
                 }}
             }} catch(e) {{
-                console.log("Error audio:", e);
+                console.log("Audio diblokir oleh TV:", e);
             }}
-        }})();
+        }}, 50);
         </script>
     """,
         height=0,
         width=0,
     )
-    # Matikan trigger agar suara tidak dimainkan ulang oleh interval timer
     st.session_state.trigger_flash = False
 
 
 # --- ANTARMUKA APLIKASI (UI) ---
 
 st.markdown(
-    "<h3 style='text-align: center; color: #0F172A; font-weight: 800; margin-bottom: 20px;'>🧮 Kuis Penjumlahan</h3>",
+    "<h2 style='text-align: center; color: #0F172A; font-weight: 800; margin-bottom: 20px;'>🧮 Kuis Penjumlahan</h2>",
     unsafe_allow_html=True,
 )
 
@@ -247,8 +231,8 @@ if st.session_state.screen == "menu":
     st.markdown(
         """
         <div class="quiz-card">
-            <h4 style="color: #334155; margin: 0 0 8px 0; font-weight: 700;">Pilih Modul Belajar</h4>
-            <p style="color: #64748b; font-size: 0.9rem; margin: 0;">Pilih angka penjumlahan yang ingin kamu latih (10 Detik/Soal)</p>
+            <h3 style="color: #334155; margin: 0 0 8px 0; font-weight: 700;">Pilih Modul Belajar</h3>
+            <p style="color: #64748b; font-size: 1rem; margin: 0;">Pilih angka penjumlahan yang ingin kamu latih (10 Detik/Soal)</p>
         </div>
     """,
         unsafe_allow_html=True,
@@ -296,7 +280,7 @@ elif st.session_state.screen == "quiz":
     st.markdown(
         f"""
         <div class="quiz-card">
-            <div style="color: #64748B; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Berapakah Hasilnya?</div>
+            <div style="color: #64748B; font-weight: 700; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px;">Berapakah Hasilnya?</div>
             <div class="question-text">{st.session_state.soal_teks} = ?</div>
         </div>
     """,
@@ -325,7 +309,7 @@ elif st.session_state.screen == "quiz":
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # LOGIKA TIMER 10 DETIK
+    # LOGIKA TIMER 10 DETIK (Disesuaikan 1 detik sekali untuk TV)
     if not user_clicked:
         sisa_waktu = 10 - int(time.time() - st.session_state.start_time)
 
@@ -334,7 +318,7 @@ elif st.session_state.screen == "quiz":
                 f'<div class="timer-badge">⏱️ Sisa Waktu: {sisa_waktu} detik</div>',
                 unsafe_allow_html=True,
             )
-            time.sleep(0.1)
+            time.sleep(1)  # Beri jeda 1 detik penuh agar TV tidak lag
             st.rerun()
         else:
             # Waktu Habis -> Jawaban Otomatis Salah
@@ -349,12 +333,12 @@ elif st.session_state.screen == "result":
     st.markdown(
         f"""
         <div class="quiz-card">
-            <h3 style="color: #0F172A; margin-bottom: 15px; font-weight: 800;">🎉 Ringkasan Hasil</h3>
-            <p style="font-size: 1.05rem; color: #475569; margin: 5px 0;">Total Soal Dijawab: <b>{total}</b></p>
-            <p style="font-size: 1.1rem; color: #166534; font-weight: 700; margin: 5px 0;">Jawaban Benar: {st.session_state.skor_benar}</p>
-            <p style="font-size: 1.1rem; color: #991B1B; font-weight: 700; margin: 5px 0;">Jawaban Salah: {st.session_state.skor_salah}</p>
+            <h2 style="color: #0F172A; margin-bottom: 15px; font-weight: 800;">🎉 Ringkasan Hasil</h2>
+            <p style="font-size: 1.2rem; color: #475569; margin: 5px 0;">Total Soal Dijawab: <b>{total}</b></p>
+            <p style="font-size: 1.2rem; color: #166534; font-weight: 700; margin: 5px 0;">Jawaban Benar: {st.session_state.skor_benar}</p>
+            <p style="font-size: 1.2rem; color: #991B1B; font-weight: 700; margin: 5px 0;">Jawaban Salah: {st.session_state.skor_salah}</p>
             <hr style="border: 0; border-top: 1px solid #E2E8F0; margin: 15px 0;">
-            <h2 style="color: #2563EB; margin: 0; font-weight: 800;">Akurasi: {akurasi:.0f}%</h2>
+            <h1 style="color: #2563EB; margin: 0; font-weight: 800;">Akurasi: {akurasi:.0f}%</h1>
         </div>
     """,
         unsafe_allow_html=True,
