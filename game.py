@@ -1,7 +1,5 @@
 import random
-import time
 import streamlit as st
-import streamlit.components.v1 as components
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(
@@ -23,48 +21,29 @@ if "jawaban" not in st.session_state:
     st.session_state.jawaban = 0
 if "soal_teks" not in st.session_state:
     st.session_state.soal_teks = ""
-if "trigger_flash" not in st.session_state:
-    st.session_state.trigger_flash = False
-if "flash_count" not in st.session_state:
-    st.session_state.flash_count = 0
-if "start_time" not in st.session_state:
-    st.session_state.start_time = time.time()
 
-# --- CSS STYLING & ANIMASI FLASH LATAR BELAKANG ---
-flash_css = ""
-if st.session_state.trigger_flash:
-    flash_css = """
-    @keyframes flashRed {
-        0% { background-color: #FECACA; }
-        100% { background-color: #F8FAFC; }
-    }
-    .stApp {
-        animation: flashRed 0.4s ease-out forwards;
-    }
-    """
-
+# --- CSS STYLING (OPTIMAL UNTUK ANDROID TV) ---
 st.markdown(
-    f"""
+    """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
 
-    html, body, [class*="css"] {{
+    html, body, [class*="css"] {
         font-family: 'Plus Jakarta Sans', sans-serif;
-    }}
+        background-color: #F8FAFC;
+    }
 
-    {flash_css}
-
-    .main .block-container {{
-        max-width: 520px !important;
+    .main .block-container {
+        max-width: 580px !important;
         padding-top: 1.5rem !important;
         padding-bottom: 2rem !important;
-    }}
+    }
 
-    header {{ visibility: hidden; }}
-    footer {{ visibility: hidden; }}
+    header { visibility: hidden; }
+    footer { visibility: hidden; }
 
     /* Kartu Soal */
-    .quiz-card {{
+    .quiz-card {
         background: #FFFFFF;
         border-radius: 20px;
         padding: 24px;
@@ -72,49 +51,36 @@ st.markdown(
         box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
         border: 1px solid #E2E8F0;
         margin-bottom: 20px;
-    }}
+    }
 
-    .question-text {{
-        font-size: 3.5rem;
+    .question-text {
+        font-size: 3.8rem;
         font-weight: 800;
         color: #0F172A;
         margin: 10px 0;
         letter-spacing: -1px;
-    }}
+    }
 
     /* Papan Skor Top Bar */
-    .score-badge-container {{
+    .score-badge-container {
         display: flex;
         justify-content: space-between;
         gap: 12px;
         margin-bottom: 16px;
-    }}
-    .score-badge {{
+    }
+    .score-badge {
         flex: 1;
         padding: 12px;
         border-radius: 12px;
         text-align: center;
         font-weight: 700;
         font-size: 1.1rem;
-    }}
-    .score-correct {{ background-color: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }}
-    .score-wrong {{ background-color: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }}
+    }
+    .score-correct { background-color: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+    .score-wrong { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
 
-    /* Timer Badge */
-    .timer-badge {{
-        background-color: #FEF3C7;
-        color: #92400E;
-        border: 1px solid #FDE68A;
-        border-radius: 12px;
-        padding: 12px;
-        text-align: center;
-        font-weight: 800;
-        font-size: 1.2rem;
-        margin-bottom: 16px;
-    }}
-
-    /* Tombol Pilihan Ganda */
-    .option-btn > .stButton > button {{
+    /* Tombol Pilihan Ganda & Menu (Ramah Remote Android TV) */
+    .stButton > button {
         width: 100% !important;
         height: 65px !important;
         border-radius: 14px !important;
@@ -122,16 +88,24 @@ st.markdown(
         font-weight: 700 !important;
         background-color: #FFFFFF !important;
         color: #1E293B !important;
-        border: 2px solid #E2E8F0 !important;
+        border: 2px solid #CBD5E1 !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03) !important;
-        margin-bottom: 10px !important;
-    }}
+        margin-bottom: 8px !important;
+    }
 
-    .secondary-btn > .stButton > button {{
-        height: 50px !important;
-        font-size: 1.05rem !important;
+    /* Efek Fokus saat Ditekan/Dipilih D-Pad Remote TV */
+    .stButton > button:focus {
+        border-color: #2563EB !important;
+        background-color: #EFF6FF !important;
+        color: #2563EB !important;
+        outline: none !important;
+    }
+
+    .secondary-btn > .stButton > button {
+        height: 52px !important;
+        font-size: 1.1rem !important;
         border-radius: 12px !important;
-    }}
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -163,60 +137,15 @@ def generate_soal(kategori):
     pilihan_list = list(pilihan)
     random.shuffle(pilihan_list)
     st.session_state.pilihan = pilihan_list
-    st.session_state.start_time = time.time()
 
 
 def cek_jawaban(jawaban_user):
     if jawaban_user == st.session_state.jawaban:
         st.session_state.skor_benar += 1
-        st.session_state.trigger_flash = False
     else:
         st.session_state.skor_salah += 1
-        st.session_state.trigger_flash = True
-        st.session_state.flash_count += 1
 
     generate_soal(st.session_state.kategori)
-
-
-# --- SUARA BUZZER AMAN UNTUK ANDROID TV ---
-if st.session_state.trigger_flash:
-    components.html(
-        f"""
-        <!-- trigger_audio_{st.session_state.flash_count} -->
-        <script>
-        setTimeout(function() {{
-            try {{
-                var targetWin = window.parent || window;
-                var AudioCtx = targetWin.AudioContext || targetWin.webkitAudioContext;
-                if (AudioCtx) {{
-                    var ctx = new AudioCtx();
-                    if (ctx.state === 'suspended') {{ ctx.resume(); }}
-                    var osc = ctx.createOscillator();
-                    var gain = ctx.createGain();
-                    
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(160, ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.35);
-                    
-                    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
-                    
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.35);
-                }}
-            }} catch(e) {{
-                console.log("Audio diblokir oleh TV:", e);
-            }}
-        }}, 50);
-        </script>
-    """,
-        height=0,
-        width=0,
-    )
-    st.session_state.trigger_flash = False
 
 
 # --- ANTARMUKA APLIKASI (UI) ---
@@ -232,7 +161,7 @@ if st.session_state.screen == "menu":
         """
         <div class="quiz-card">
             <h3 style="color: #334155; margin: 0 0 8px 0; font-weight: 700;">Pilih Modul Belajar</h3>
-            <p style="color: #64748b; font-size: 1rem; margin: 0;">Pilih angka penjumlahan yang ingin kamu latih (10 Detik/Soal)</p>
+            <p style="color: #64748b; font-size: 1rem; margin: 0;">Pilih angka penjumlahan yang ingin kamu latih</p>
         </div>
     """,
         unsafe_allow_html=True,
@@ -275,8 +204,6 @@ elif st.session_state.screen == "quiz":
         unsafe_allow_html=True,
     )
 
-    timer_placeholder = st.empty()
-
     st.markdown(
         f"""
         <div class="quiz-card">
@@ -287,18 +214,15 @@ elif st.session_state.screen == "quiz":
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="option-btn">', unsafe_allow_html=True)
-    user_clicked = False
+    # Menampilkan 4 Pilihan Jawaban
     for idx, opsi in enumerate(st.session_state.pilihan):
         if st.button(
             str(opsi),
-            key=f"opt_{idx}_{st.session_state.flash_count}",
+            key=f"opt_{idx}",
             use_container_width=True,
         ):
-            user_clicked = True
             cek_jawaban(opsi)
             st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div class="secondary-btn">', unsafe_allow_html=True)
@@ -308,22 +232,6 @@ elif st.session_state.screen == "quiz":
         st.session_state.screen = "result"
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
-
-    # LOGIKA TIMER 10 DETIK (Disesuaikan 1 detik sekali untuk TV)
-    if not user_clicked:
-        sisa_waktu = 10 - int(time.time() - st.session_state.start_time)
-
-        if sisa_waktu > 0:
-            timer_placeholder.markdown(
-                f'<div class="timer-badge">⏱️ Sisa Waktu: {sisa_waktu} detik</div>',
-                unsafe_allow_html=True,
-            )
-            time.sleep(1)  # Beri jeda 1 detik penuh agar TV tidak lag
-            st.rerun()
-        else:
-            # Waktu Habis -> Jawaban Otomatis Salah
-            cek_jawaban(-1)
-            st.rerun()
 
 # 3. SCREEN: HASIL AKHIR
 elif st.session_state.screen == "result":
