@@ -22,14 +22,12 @@ if "jawaban" not in st.session_state:
 if "soal_teks" not in st.session_state:
     st.session_state.soal_teks = ""
 
-# --- CSS STYLING (OPTIMAL UNTUK ANDROID TV) ---
+# --- CSS STYLING (TANPA FONT EKSTERNAL AGAR CEPAT DI TV) ---
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
-
     html, body, [class*="css"] {
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         background-color: #F8FAFC;
     }
 
@@ -39,8 +37,8 @@ st.markdown(
         padding-bottom: 2rem !important;
     }
 
-    header { visibility: hidden; }
-    footer { visibility: hidden; }
+    header { display: none !important; }
+    footer { display: none !important; }
 
     /* Kartu Soal */
     .quiz-card {
@@ -48,7 +46,7 @@ st.markdown(
         border-radius: 20px;
         padding: 24px;
         text-align: center;
-        box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         border: 1px solid #E2E8F0;
         margin-bottom: 20px;
     }
@@ -79,7 +77,7 @@ st.markdown(
     .score-correct { background-color: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
     .score-wrong { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
 
-    /* Tombol Pilihan Ganda & Menu (Ramah Remote Android TV) */
+    /* Tombol Pilihan Ganda & Menu (Ramah Remote TV) */
     .stButton > button {
         width: 100% !important;
         height: 65px !important;
@@ -89,7 +87,6 @@ st.markdown(
         background-color: #FFFFFF !important;
         color: #1E293B !important;
         border: 2px solid #CBD5E1 !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03) !important;
         margin-bottom: 8px !important;
     }
 
@@ -214,7 +211,6 @@ elif st.session_state.screen == "quiz":
         unsafe_allow_html=True,
     )
 
-    # Menampilkan 4 Pilihan Jawaban
     for idx, opsi in enumerate(st.session_state.pilihan):
         if st.button(
             str(opsi),
