@@ -1,5 +1,7 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import random
+import time
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(
@@ -8,41 +10,27 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- CSS MODERN & PRESISI (RESPONSIF & RAPI) ---
+# --- CSS MODERN & STYLING TOMBOL ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
 
-    /* Tampilan Dasar */
     html, body, [class*="css"] {
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    /* Batasi Lebar Kontainer Utama Agar Rapi Seperti Aplikasi Mobile */
+    /* Membatasi lebar tampilan agar tetap rapi seperti aplikasi mobile */
     .main .block-container {
         max-width: 480px !important;
         padding-top: 1.5rem !important;
         padding-bottom: 2rem !important;
     }
 
-    /* Hilangkan Header Bawaan Streamlit */
+    /* Sembunyikan header/footer bawaan Streamlit */
     header { visibility: hidden; }
     footer { visibility: hidden; }
 
-    /* Flash Merah Layar Penuh Saat Jawaban Salah */
-    @keyframes redFlashAnim {
-        0% { background-color: rgba(239, 68, 68, 0.75); }
-        100% { background-color: transparent; }
-    }
-    .flash-overlay {
-        position: fixed;
-        top: 0; left: 0; width: 100vw; height: 100vh;
-        pointer-events: none;
-        z-index: 999999;
-        animation: redFlashAnim 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-    }
-
-    /* Kartu Soal / Header Card */
+    /* Kartu Soal */
     .quiz-card {
         background: #FFFFFF;
         border-radius: 20px;
@@ -61,7 +49,7 @@ st.markdown("""
         letter-spacing: -1px;
     }
 
-    /* Papan Skor Modern */
+    /* Papan Skor Top Bar */
     .score-badge-container {
         display: flex;
         justify-content: space-between;
@@ -79,36 +67,37 @@ st.markdown("""
     .score-correct { background-color: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
     .score-wrong { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
 
-    /* PENATAAN TOMBOL PILIHAN GANDA (SAMA RATA & RAPI) */
-    .stButton > button {
+    /* TOMBOL PILIHAN GANDA PANJANG & UNIFORM */
+    .option-btn > .stButton > button {
         width: 100% !important;
-        height: 70px !important;
-        border-radius: 16px !important;
-        font-size: 1.5rem !important;
+        height: 58px !important;
+        border-radius: 14px !important;
+        font-size: 1.4rem !important;
         font-weight: 700 !important;
         background-color: #FFFFFF !important;
         color: #1E293B !important;
         border: 2px solid #E2E8F0 !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03) !important;
+        margin-bottom: 6px !important;
         transition: all 0.15s ease-in-out !important;
     }
 
-    .stButton > button:hover {
+    .option-btn > .stButton > button:hover {
         border-color: #3B82F6 !important;
         color: #2563EB !important;
         background-color: #EFF6FF !important;
         transform: translateY(-2px) !important;
-        box-shadow: 0 8px 15px -3px rgba(59, 130, 246, 0.15) !important;
+        box-shadow: 0 6px 12px -2px rgba(59, 130, 246, 0.15) !important;
     }
 
-    .stButton > button:active {
+    .option-btn > .stButton > button:active {
         transform: translateY(1px) !important;
     }
 
-    /* Kustomisasi Tombol Sekunder (Kategori & Selesai) */
+    /* Style Tombol Sekunder (Kategori / Navigasi) */
     .secondary-btn > .stButton > button {
-        height: 50px !important;
-        font-size: 1rem !important;
+        height: 48px !important;
+        font-size: 0.95rem !important;
         border-radius: 12px !important;
     }
     </style>
@@ -127,10 +116,12 @@ if 'pilihan' not in st.session_state:
     st.session_state.pilihan = []
 if 'jawaban' not in st.session_state:
     st.session_state.jawaban = 0
-if 'flash_salah' not in st.session_state:
-    st.session_state.flash_salah = False
+if 'trigger_flash' not in st.session_state:
+    st.session_state.trigger_flash = False
+if 'flash_count' not in st.session_state:
+    st.session_state.flash_count = 0
 
-# --- LOGIKA KUIS ---
+# --- LOGIKA SOAL ---
 def generate_soal(kategori):
     if 1 <= kategori <= 9:
         n1 = kategori
@@ -157,46 +148,71 @@ def generate_soal(kategori):
 def cek_jawaban(jawaban_user):
     if jawaban_user == st.session_state.jawaban:
         st.session_state.skor_benar += 1
-        st.session_state.flash_salah = False
+        st.session_state.trigger_flash = False
     else:
         st.session_state.skor_salah += 1
-        st.session_state.flash_salah = True
+        st.session_state.trigger_flash = True
+        st.session_state.flash_count += 1
         
     generate_soal(st.session_state.kategori)
 
-# --- EFEK FLASH MERAH & SUARA BUZZER JIKA JAWABAN SALAH ---
-if st.session_state.flash_salah:
-    # Audio Beep Base64 (Suara Error Pendek)
-    BEEP_AUDIO = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFb2x3e4SGi4yPj5CakZWWmJmZm5ycnpyampmYmZaVlJOMi4qIhoaEg4KBf318fXx8fX19fHx8fX1+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+fn5+"
-    
-    st.markdown(f"""
-        <div class="flash-overlay"></div>
-        <audio autoplay style="display:none;">
-            <source src="{BEEP_AUDIO}" type="audio/wav">
-        </audio>
+# --- INJEKSI FLASH MERAH & SUARA NOTIFIKASI (KONSISTEN SETIAP SALAH) ---
+if st.session_state.trigger_flash:
+    # Menggunakan iframe component agar JavaScript selalu dieksekusi ulang tanpa caching
+    components.html(f"""
         <script>
-            // Fallback Web Audio API
+        (function() {{
+            // 1. Bunyikan Suara Error (Buzzer)
             try {{
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(180, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.35);
+                osc.frequency.setValueAtTime(200, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.3);
                 
-                gain.gain.setValueAtTime(0.5, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+                gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
                 
                 osc.connect(gain);
                 gain.connect(ctx.destination);
                 
                 osc.start();
-                osc.stop(ctx.currentTime + 0.35);
+                osc.stop(ctx.currentTime + 0.3);
             }} catch(e) {{}}
+
+            // 2. Tampilkan Flash Merah pada Layar Utama
+            try {{
+                const parentDoc = window.parent.document;
+                const flashDiv = parentDoc.createElement('div');
+                flashDiv.style.position = 'fixed';
+                flashDiv.style.top = '0';
+                flashDiv.style.left = '0';
+                flashDiv.style.width = '100vw';
+                flashDiv.style.height = '100vh';
+                flashDiv.style.backgroundColor = 'rgba(239, 68, 68, 0.65)';
+                flashDiv.style.zIndex = '999999';
+                flashDiv.style.pointerEvents = 'none';
+                flashDiv.style.transition = 'opacity 0.4s ease-out';
+                flashDiv.style.opacity = '1';
+                
+                parentDoc.body.appendChild(flashDiv);
+                
+                setTimeout(() => {{
+                    flashDiv.style.opacity = '0';
+                    setTimeout(() => {{
+                        if (flashDiv.parentNode) {{
+                            flashDiv.parentNode.removeChild(flashDiv);
+                        }}
+                    }}, 400);
+                }}, 50);
+            }} catch(e) {{}}
+        }})();
         </script>
-    """, unsafe_allow_html=True)
-    st.session_state.flash_salah = False
+    """, height=0, width=0)
+    
+    st.session_state.trigger_flash = False
 
 # --- TAMPILAN ANTARMUKA (UI) ---
 
@@ -207,7 +223,7 @@ if not st.session_state.soal_aktif:
     st.markdown("""
         <div class="quiz-card">
             <h4 style="color: #334155; margin: 0 0 8px 0; font-weight: 700;">Pilih Modul Belajar</h4>
-            <p style="color: #64748b; font-size: 0.9rem; margin: 0;">Pilih angka penjumlahan yang ingin dilatih</p>
+            <p style="color: #64748b; font-size: 0.9rem; margin: 0;">Pilih angka penjumlahan yang ingin kamu latih</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -228,7 +244,7 @@ if not st.session_state.soal_aktif:
 
 # 2. SCREEN: KUIS AKTIF
 else:
-    # Papan Skor Top Bar
+    # Papan Skor
     st.markdown(f"""
         <div class="score-badge-container">
             <div class="score-badge score-correct">✓ Benar: {st.session_state.skor_benar}</div>
@@ -244,23 +260,13 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # Grid 2x2 Tombol Pilihan Ganda Rapi & Simetris
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button(str(st.session_state.pilihan[0]), key="opt_0"):
-            cek_jawaban(st.session_state.pilihan[0])
+    # Pilihan Ganda Membujur Panjang (1 Kolom, Ukuran Sama & Rapi)
+    st.markdown('<div class="option-btn">', unsafe_allow_html=True)
+    for idx, opsi in enumerate(st.session_state.pilihan):
+        if st.button(str(opsi), key=f"opt_{idx}_{st.session_state.flash_count}", use_container_width=True):
+            cek_jawaban(opsi)
             st.rerun()
-        if st.button(str(st.session_state.pilihan[2]), key="opt_2"):
-            cek_jawaban(st.session_state.pilihan[2])
-            st.rerun()
-            
-    with c2:
-        if st.button(str(st.session_state.pilihan[1]), key="opt_1"):
-            cek_jawaban(st.session_state.pilihan[1])
-            st.rerun()
-        if st.button(str(st.session_state.pilihan[3]), key="opt_3"):
-            cek_jawaban(st.session_state.pilihan[3])
-            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div class="secondary-btn">', unsafe_allow_html=True)
@@ -269,7 +275,7 @@ else:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# 3. SCREEN: HASIL AKHIR (Pilihan Selesai)
+# 3. SCREEN: HASIL AKHIR
 if not st.session_state.soal_aktif and (st.session_state.skor_benar > 0 or st.session_state.skor_salah > 0):
     total = st.session_state.skor_benar + st.session_state.skor_salah
     akurasi = (st.session_state.skor_benar / total * 100) if total > 0 else 0
