@@ -30,17 +30,19 @@ if "flash_count" not in st.session_state:
 if "start_time" not in st.session_state:
     st.session_state.start_time = time.time()
 
-# --- CSS STYLING & ANIMASI FLASH LATAR BELAKANG ---
+# --- CSS STYLING & ANIMASI FLASH LATAR BELAKANG (DINAMIS) ---
 flash_css = ""
 if st.session_state.trigger_flash:
-    flash_css = """
-    @keyframes flashRed {
-        0% { background-color: #FECACA; }
-        100% { background-color: #F8FAFC; }
-    }
-    .stApp {
-        animation: flashRed 0.4s ease-out forwards;
-    }
+    # Menggunakan ID flash_count agar animasi selalu dianggap baru oleh browser
+    anim_name = f"flashRed_{st.session_state.flash_count}"
+    flash_css = f"""
+    @keyframes {anim_name} {{
+        0% {{ background-color: #FECACA; }}
+        100% {{ background-color: #F8FAFC; }}
+    }}
+    .stApp {{
+        animation: {anim_name} 0.4s ease-out forwards;
+    }}
     """
 
 st.markdown(
@@ -216,7 +218,8 @@ if st.session_state.trigger_flash:
         height=0,
         width=0,
     )
-    st.session_state.trigger_flash = False
+    # PENTING: trigger_flash tidak langsung di-reset di sini agar CSS sempat ter-render!
+    # Variabel ini akan otomatis ter-reset sendiri saat jawaban berikutnya dicek.
 
 
 # --- ANTARMUKA APLIKASI (UI) ---
@@ -299,12 +302,11 @@ elif st.session_state.screen == "quiz":
         unsafe_allow_html=True,
     )
 
-    # PILIHAN GANDA (DIBUAT GRID 2x2 / 2 BARIS)
+    # PILIHAN GANDA (GRID 2x2)
     st.markdown('<div class="option-btn">', unsafe_allow_html=True)
-    
+
     col1, col2 = st.columns(2)
-    
-    # Baris 1: Opsi 0 dan 1
+
     with col1:
         if st.button(
             str(st.session_state.pilihan[0]),
@@ -313,7 +315,7 @@ elif st.session_state.screen == "quiz":
         ):
             cek_jawaban(st.session_state.pilihan[0])
             st.rerun()
-            
+
     with col2:
         if st.button(
             str(st.session_state.pilihan[1]),
@@ -323,9 +325,8 @@ elif st.session_state.screen == "quiz":
             cek_jawaban(st.session_state.pilihan[1])
             st.rerun()
 
-    # Baris 2: Opsi 2 dan 3
     col3, col4 = st.columns(2)
-    
+
     with col3:
         if st.button(
             str(st.session_state.pilihan[2]),
@@ -334,7 +335,7 @@ elif st.session_state.screen == "quiz":
         ):
             cek_jawaban(st.session_state.pilihan[2])
             st.rerun()
-            
+
     with col4:
         if st.button(
             str(st.session_state.pilihan[3]),
@@ -355,7 +356,7 @@ elif st.session_state.screen == "quiz":
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Trigger auto-rerun via JS agar UI tetap responsif terhadap klik tombol
+    # Trigger auto-rerun via JS
     components.html(
         """
         <script>
