@@ -18,15 +18,18 @@ st.markdown(
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
+    /* Membatasi lebar tampilan agar tetap rapi seperti aplikasi mobile */
     .main .block-container {
         max-width: 480px !important;
         padding-top: 1.5rem !important;
         padding-bottom: 2rem !important;
     }
 
+    /* Sembunyikan header/footer bawaan Streamlit */
     header { visibility: hidden; }
     footer { visibility: hidden; }
 
+    /* Kartu Soal */
     .quiz-card {
         background: #FFFFFF;
         border-radius: 20px;
@@ -45,6 +48,7 @@ st.markdown(
         letter-spacing: -1px;
     }
 
+    /* Papan Skor Top Bar */
     .score-badge-container {
         display: flex;
         justify-content: space-between;
@@ -62,6 +66,7 @@ st.markdown(
     .score-correct { background-color: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
     .score-wrong { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
 
+    /* Timer Badge */
     .timer-badge {
         background-color: #FEF3C7;
         color: #92400E;
@@ -74,6 +79,7 @@ st.markdown(
         margin-bottom: 16px;
     }
 
+    /* Tombol Pilihan Ganda */
     .option-btn > .stButton > button {
         width: 100% !important;
         height: 60px !important;
@@ -100,6 +106,7 @@ st.markdown(
         transform: translateY(1px) !important;
     }
 
+    /* Style Tombol Sekunder */
     .secondary-btn > .stButton > button {
         height: 48px !important;
         font-size: 0.95rem !important;
@@ -112,7 +119,7 @@ st.markdown(
 
 # --- INITIALIZATION SESSION STATE ---
 if "screen" not in st.session_state:
-    st.session_state.screen = "menu"
+    st.session_state.screen = "menu"  # Status: 'menu', 'quiz', 'result'
 if "kategori" not in st.session_state:
     st.session_state.kategori = None
 if "skor_benar" not in st.session_state:
@@ -148,6 +155,7 @@ def generate_soal(kategori):
     st.session_state.jawaban = jawaban_benar
     st.session_state.soal_teks = f"{n1} + {n2}"
 
+    # Generate 4 pilihan angka unik
     pilihan = {jawaban_benar}
     while len(pilihan) < 4:
         offset = random.choice([-3, -2, -1, 1, 2, 3])
@@ -180,6 +188,7 @@ if st.session_state.trigger_flash:
         <!-- flash_id_{st.session_state.flash_count} -->
         <script>
         (function() {{
+            // 1. Suara Buzzer Error
             try {{
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 if (AudioCtx) {{
@@ -203,6 +212,7 @@ if st.session_state.trigger_flash:
                 }}
             }} catch(e) {{ console.log(e); }}
 
+            // 2. Efek Flash Merah Layar Penuh
             try {{
                 const parentDoc = window.parent.document;
                 const existingFlash = parentDoc.getElementById('active-red-flash');
@@ -218,7 +228,7 @@ if st.session_state.trigger_flash:
                 flashDiv.style.backgroundColor = 'rgba(239, 68, 68, 0.7)';
                 flashDiv.style.zIndex = '999999';
                 flashDiv.style.pointerEvents = 'none';
-                flashDiv.style.transition = 'opacity 0.3s ease-out';
+                flashDiv.style.transition = 'opacity 0.25s ease-out';
                 
                 parentDoc.body.appendChild(flashDiv);
                 
@@ -228,8 +238,8 @@ if st.session_state.trigger_flash:
                         if (flashDiv.parentNode) {{
                             flashDiv.parentNode.removeChild(flashDiv);
                         }}
-                    }}, 300);
-                }}, 100);
+                    }}, 250);
+                }}, 80);
             }} catch(e) {{ console.log(e); }}
         }})();
         </script>
@@ -237,7 +247,10 @@ if st.session_state.trigger_flash:
         height=0,
         width=0,
     )
+
+    # Langsung matikan trigger agar tidak di-loop oleh timer
     st.session_state.trigger_flash = False
+
 
 # --- TAMPILAN ANTARMUKA (UI) ---
 
@@ -296,7 +309,7 @@ elif st.session_state.screen == "quiz":
         unsafe_allow_html=True,
     )
 
-    # Placeholder untuk Timer (Diupdate setiap detik)
+    # Placeholder Timer
     timer_placeholder = st.empty()
 
     # Kartu Soal
@@ -333,7 +346,7 @@ elif st.session_state.screen == "quiz":
         st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # HITUNG & JALANKAN TIMER (10 Detik)
+    # LOGIKA TIMER 10 DETIK
     if not user_clicked:
         sisa_waktu = 10 - int(time.time() - st.session_state.start_time)
 
@@ -342,11 +355,11 @@ elif st.session_state.screen == "quiz":
                 f'<div class="timer-badge">⏱️ Sisa Waktu: {sisa_waktu} detik</div>',
                 unsafe_allow_html=True,
             )
-            time.sleep(0.1)  # Delay singkat untuk responsivitas tombol
+            time.sleep(0.1)
             st.rerun()
         else:
-            # Waktu habis = Otomatis Salah
-            cek_jawaban(-1)  # -1 dipastikan salah
+            # Waktu Habis -> Jawaban Otomatis Salah (-1)
+            cek_jawaban(-1)
             st.rerun()
 
 # 3. SCREEN: HASIL AKHIR
