@@ -1,7 +1,47 @@
+import base64
+import math
 import random
+import struct
 import time
 import streamlit as st
 import streamlit.components.v1 as components
+
+
+# --- GENERATOR SUARA BUZZER (WAV BASE64) ---
+@st.cache_data
+def get_buzzer_audio_base64():
+    """Menghasilkan file audio WAV buatan sendiri (suara buzzer/tettt) dalam format Base64"""
+    sample_rate = 16000
+    duration = 0.25  # Durasi 0.25 detik
+    freq = 150  # Frekuensi nada rendah (efek salah/error)
+    num_samples = int(sample_rate * duration)
+
+    audio_bytes = bytearray()
+    for i in range(num_samples):
+        t = i / sample_rate
+        # Gelombang kotak (square wave) untuk karakter suara buzzer khas kuis
+        val = 1.0 if (math.sin(2 * math.pi * freq * t) > 0) else -1.0
+        # Redaman (fade out) lembut di ujung suara
+        fade = (num_samples - i) / num_samples
+        sample_val = int(128 + 45 * val * fade)
+        audio_bytes.append(max(0, min(255, sample_val)))
+
+    # Header File WAV PCM
+    header = bytearray()
+    header.extend(b"RIFF")
+    header.extend(struct.pack("<I", 36 + len(audio_bytes)))
+    header.extend(b"WAVEfmt ")
+    header.extend(
+        struct.pack("<IHHIIHH", 16, 1, 1, sample_rate, sample_rate, 1, 8)
+    )
+    header.extend(b"data")
+    header.extend(struct.pack("<I", len(audio_bytes)))
+
+    wav_data = header + audio_bytes
+    return base64.b64encode(wav_data).decode("utf-8")
+
+
+BUZZER_BASE64 = get_buzzer_audio_base64()
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(
@@ -10,7 +50,7 @@ st.set_page_config(
 
 # --- INITIALIZATION SESSION STATE ---
 if "screen" not in st.session_state:
-    st.session_state.screen = "menu"  # Status: 'menu', 'quiz', 'result'
+    st.session_state.screen = "menu"  # 'menu', 'quiz', 'result'
 if "kategori" not in st.session_state:
     st.session_state.kategori = None
 if "skor_benar" not in st.session_state:
@@ -30,16 +70,16 @@ if "flash_count" not in st.session_state:
 if "start_time" not in st.session_state:
     st.session_state.start_time = time.time()
 
-# --- CSS MODERN & ANIMASI FLASH ---
+# --- CSS STYLING & ANIMASI FLASH LATAR BELAKANG ---
 flash_css = ""
 if st.session_state.trigger_flash:
     flash_css = """
-    @keyframes flashAnimation {
-        0% { background-color: rgba(239, 68, 68, 0.6); }
-        100% { background-color: transparent; }
+    @keyframes flashRed {
+        0% { background-color: #FECACA; }
+        100% { background-color: #F8FAFC; }
     }
     .stApp {
-        animation: flashAnimation 0.4s ease-out forwards;
+        animation: flashRed 0.4s ease-out forwards;
     }
     """
 
@@ -54,14 +94,12 @@ st.markdown(
 
     {flash_css}
 
-    /* Membatasi lebar tampilan agar tetap rapi seperti aplikasi mobile */
     .main .block-container {{
         max-width: 480px !important;
         padding-top: 1.5rem !important;
         padding-bottom: 2rem !important;
     }}
 
-    /* Sembunyikan header/footer bawaan Streamlit */
     header {{ visibility: hidden; }}
     footer {{ visibility: hidden; }}
 
@@ -138,11 +176,6 @@ st.markdown(
         box-shadow: 0 6px 12px -2px rgba(59, 130, 246, 0.15) !important;
     }}
 
-    .option-btn > .stButton > button:active {{
-        transform: translateY(1px) !important;
-    }}
-
-    /* Style Tombol Sekunder */
     .secondary-btn > .stButton > button {{
         height: 48px !important;
         font-size: 0.95rem !important;
@@ -169,7 +202,6 @@ def generate_soal(kategori):
     st.session_state.jawaban = jawaban_benar
     st.session_state.soal_teks = f"{n1} + {n2}"
 
-    # Generate 4 pilihan angka unik
     pilihan = {jawaban_benar}
     while len(pilihan) < 4:
         offset = random.choice([-3, -2, -1, 1, 2, 3])
@@ -180,7 +212,7 @@ def generate_soal(kategori):
     pilihan_list = list(pilihan)
     random.shuffle(pilihan_list)
     st.session_state.pilihan = pilihan_list
-    st.session_state.start_time = time.time()  # Reset timer tiap soal baru
+    st.session_state.start_time = time.time()
 
 
 def cek_jawaban(jawaban_user):
@@ -195,53 +227,37 @@ def cek_jawaban(jawaban_user):
     generate_soal(st.session_state.kategori)
 
 
-# --- INJEKSI SUARA BUZZER ---
+# --- PEMUTAR SUARA BUZZER (HTML5 AUDIO) ---
 if st.session_state.trigger_flash:
     components.html(
         f"""
-        <!-- audio_id_{st.session_state.flash_count} -->
+        <audio autoplay style="display:none;">
+            <source src="data:audio/wav;base64,{BUZZER_BASE64}" type="audio/wav">
+        </audio>
         <script>
         (function() {{
             try {{
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (AudioCtx) {{
-                    const ctx = new AudioCtx();
-                    if (ctx.state === 'suspended') {{ ctx.resume(); }}
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(180, ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.3);
-                    
-                    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-                    
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.3);
-                }}
-            }} catch(e) {{ console.log(e); }}
+                var audio = new Audio("data:audio/wav;base64,{BUZZER_BASE64}");
+                audio.play().catch(function(e){{ console.log(e); }});
+            }} catch(e) {{}}
         }})();
         </script>
-    """,
+        """,
         height=0,
         width=0,
     )
-    # Matikan trigger flash agar animasi CSS hanya berjalan 1 kali
+    # Matikan trigger flash setelah suara dan animasi dipicu
     st.session_state.trigger_flash = False
 
 
-# --- TAMPILAN ANTARMUKA (UI) ---
+# --- ANTARMUKA APLIKASI (UI) ---
 
 st.markdown(
     "<h3 style='text-align: center; color: #0F172A; font-weight: 800; margin-bottom: 20px;'>🧮 Kuis Penjumlahan</h3>",
     unsafe_allow_html=True,
 )
 
-# 1. SCREEN: PILIH KATEGORI (MENU)
+# 1. SCREEN: MENU
 if st.session_state.screen == "menu":
     st.markdown(
         """
@@ -280,7 +296,6 @@ if st.session_state.screen == "menu":
 
 # 2. SCREEN: KUIS AKTIF
 elif st.session_state.screen == "quiz":
-    # Papan Skor
     st.markdown(
         f"""
         <div class="score-badge-container">
@@ -291,10 +306,8 @@ elif st.session_state.screen == "quiz":
         unsafe_allow_html=True,
     )
 
-    # Placeholder Timer
     timer_placeholder = st.empty()
 
-    # Kartu Soal
     st.markdown(
         f"""
         <div class="quiz-card">
@@ -305,7 +318,6 @@ elif st.session_state.screen == "quiz":
         unsafe_allow_html=True,
     )
 
-    # Pilihan Ganda
     st.markdown('<div class="option-btn">', unsafe_allow_html=True)
     user_clicked = False
     for idx, opsi in enumerate(st.session_state.pilihan):
@@ -340,7 +352,7 @@ elif st.session_state.screen == "quiz":
             time.sleep(0.1)
             st.rerun()
         else:
-            # Waktu Habis -> Jawaban Otomatis Salah (-1)
+            # Waktu Habis -> Jawaban Otomatis Salah
             cek_jawaban(-1)
             st.rerun()
 
